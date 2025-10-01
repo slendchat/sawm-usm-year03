@@ -16,15 +16,17 @@
   <!-- TUI CSS -->
   <link rel="stylesheet" href="/dist/tuicss.min.css"/>
   <!--  -->
+  <script src="/js/guest-xss-guard.js" defer></script>
 </head>
 <body>
   <!-- TUI CSS SCRIPT -->
-<script script src="/dist/tuicss.min.js"></script>
+<script src="/dist/tuicss.min.js"></script>
 <!--  -->
   <nav class="tui-nav">
     <?php if(!empty($_SESSION['user'])): ?>
       <ul>
       <li><a href="/"><span class="red-168-text">M</span>ain</a></li> 
+      <li><a href="/guestbook"><span class="red-168-text">G</span>uest Book</a></li>
       <li><a href="/ticket/create"><span class="red-168-text">C</span>reate Ticket</a></li> 
       <li><a href="/tickets"><span class="red-168-text">T</span>icket List</a></li>
       <?php if(!empty($_SESSION['user']['is_admin'])): ?>
@@ -37,6 +39,7 @@
       <?php else: ?>
         <ul>
         <li><a href="/"><span class="red-168-text">M</span>ain</a></li>
+        <li><a href="/guestbook"><span class="red-168-text">G</span>uest Book</a></li>
         <li><a href="/tickets"><span class="red-168-text">T</span>icket List</a></li>
         <li><a href="/login"><span class="red-168-text">L</span>ogin</a></li> 
         <li><a href="/register"><span class="red-168-text">S</span>ign Up</a></li>

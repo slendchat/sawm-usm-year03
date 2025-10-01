@@ -18,7 +18,7 @@ spl_autoload_register(function($class) {
         return;
     }
 
-    // убираем префикс, переводим несуществующие \ в /, добавляем .php
+    // ??????? ???????, ????????? ?????????????? \ ? /, ????????? .php
     $relativeClass = substr($class, strlen($prefix));
     $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
 
@@ -53,6 +53,11 @@ $router->post('/ticket/status',  'TicketController@changeStatus');
 
 $router->get('/tickets',         'TicketController@index');
 $router->get('/ticket',          'TicketController@show');
+
+// Guest book
+$router->get('/guestbook',        'GuestController@index');
+$router->post('/guestbook',       'GuestController@store');
+$router->get('/guestbook/unsafe', 'GuestController@unsafe');
 
 // admin only
 $router->get('/admin/users/create',  'AdminController@showCreateForm' );
