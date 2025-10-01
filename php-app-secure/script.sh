@@ -1,9 +1,11 @@
 #!/bin/bash
-echo "🚀 Stopping any running containers..."
-docker-compose down
+set -e
 
-echo "🔄 Removing old Docker images..."
+echo "Stopping containers and removing volumes..."
+docker-compose down -v
+
+echo "Removing unused Docker artifacts..."
 docker system prune -af
 
-echo "📦 Building and starting the containers..."
+echo "Building and starting the stack with fresh migrations..."
 docker-compose up --build -d
