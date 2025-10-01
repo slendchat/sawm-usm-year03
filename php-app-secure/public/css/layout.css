@@ -1,0 +1,35 @@
+body {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 100%;
+    min-height: 100vh;
+    margin: 0;
+}
+
+nav {
+    grid-row: 1;
+    padding: 1rem;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+
+    color: black !important;
+}
+
+main {
+    grid-row: 2;
+    padding: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+footer {
+    grid-row: 3;
+    padding: 1rem;
+    color: black !important;
+}

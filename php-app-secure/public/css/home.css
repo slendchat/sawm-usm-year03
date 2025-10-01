@@ -1,0 +1,14 @@
+.home-page {
+    color: white !important;
+}
+
+.home-page ul li {
+    position: relative;
+    padding-left: 1.2em;
+  }
+  
+.home-page ul li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+}

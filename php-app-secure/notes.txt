@@ -1,0 +1,6 @@
+docker-compose exec db bash
+mysql -u"$DB_USER" -p"$DB_PASS" "$DB_NAME"
+
+SHOW TABLES;
+DESCRIBE users;
+DESCRIBE tickets;

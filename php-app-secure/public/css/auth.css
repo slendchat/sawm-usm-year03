@@ -1,0 +1,23 @@
+/* login */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* .login-form .tui-window {
+    width: 400px !important;
+} */
+
+.login-advice {
+    color: white !important;
+}
+
+/* register */
+.register-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
