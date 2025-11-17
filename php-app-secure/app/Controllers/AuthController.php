@@ -51,7 +51,14 @@ class AuthController extends Controller
         }
 
 
-        $_SESSION['user']     = ['id'=>$user['id'],'email'=>$user['email'],'is_admin'=>$user['is_admin']];
+        $role = $user['role'] ?? null;
+        $_SESSION['user'] = [
+            'id'         => $user['id'],
+            'email'      => $user['email'],
+            'role'       => $role,
+            'is_admin'   => $role === 'admin',
+            'is_manager' => $role === 'manager',
+        ];
         $_SESSION['success']  = 'You logged in as '.$user['email'];
         header('Location: /'); exit;
     }
@@ -128,4 +135,3 @@ class AuthController extends Controller
         header('Location: /'); exit;
     }
 }
-

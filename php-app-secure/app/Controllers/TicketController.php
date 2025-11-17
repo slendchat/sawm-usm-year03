@@ -29,7 +29,7 @@ class TicketController extends Controller
         global $db;
 
         $isLoggedIn = !empty($_SESSION['user']);
-        $isAdmin    = $isLoggedIn && $_SESSION['user']['is_admin'];
+        $canManage  = $this->userCanManageTickets();
 
         // 1) Read GET filters
         $q        = trim($_GET['q']       ?? '');
@@ -41,14 +41,12 @@ class TicketController extends Controller
         $params     = [];
 
     
-        if ($isAdmin) {
-            //no filters applied to hide data
-        }
-        elseif ($isLoggedIn) {
+        if (!$canManage) {
+            if ($isLoggedIn) {
             $whereParts[] = "status IN ('Open','Closed')";
-        }
-        else {
-            $whereParts[] = "status = 'Open'";
+            } else {
+                $whereParts[] = "status = 'Open'";
+            }
         }
 
         if ($q !== '') {
@@ -80,10 +78,10 @@ class TicketController extends Controller
         $tickets = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $this->view('tickets/index', [
-            'title'   => $isAdmin ? 'All Tickets'
+            'title'   => $canManage ? 'All Tickets'
                       : ($isLoggedIn ? 'Active Tickets' : 'Open Tickets'),
             'tickets' => $tickets,
-            'isAdmin' => $isAdmin,
+            'canManageTickets' => $canManage,
             'filters' => compact('q','category','priority'),
         ]);
     }
@@ -107,14 +105,14 @@ class TicketController extends Controller
         $ticket = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (!$ticket) return $this->abort404();
 
-        if ($ticket['status']==='Pending' && empty($_SESSION['user']['is_admin'])) {
+        if ($ticket['status']==='Pending' && !$this->userCanManageTickets()) {
             return header('Location:/tickets');
         }
 
         $this->view('tickets/show', [
             'title'=>'Ticket #'.$ticket['id'],
             'ticket'=>$ticket,
-            'isAdmin'=>!empty($_SESSION['user']['is_admin'])
+            'canManageTickets'=>$this->userCanManageTickets()
         ]);
     }
     
@@ -236,7 +234,7 @@ class TicketController extends Controller
      * @return void
      */
     public function editForm(){
-        if (empty($_SESSION['user']['is_admin'])) {
+        if (!$this->userCanManageTickets()) {
             header('Location:/tickets'); exit;
         }
         $id = (int)($_GET['id'] ?? 0);
@@ -265,7 +263,7 @@ class TicketController extends Controller
      * @return void
      */
     public function edit(){
-        if (empty($_SESSION['user']['is_admin'])) {
+        if (!$this->userCanManageTickets()) {
             header('Location:/tickets'); exit;
         }
         $id = (int)($_POST['id'] ?? 0);
@@ -331,7 +329,7 @@ class TicketController extends Controller
      */
     public function delete()
     {
-        if (empty($_SESSION['user']['is_admin'])) return header('Location:/tickets');
+        if (!$this->userCanManageTickets()) return header('Location:/tickets');
         $id = (int)($_GET['id']??0);
         if ($id) {
           global $db;
@@ -351,7 +349,7 @@ class TicketController extends Controller
      */
     public function changeStatus()
     {
-        if (empty($_SESSION['user']['is_admin'])) return header('Location:/tickets');
+        if (!$this->userCanManageTickets()) return header('Location:/tickets');
         $id = (int)($_POST['id']??0);
         $status = $_POST['status']??'Open';
         if ($id && in_array($status,['Open','Closed','Pending'],true)) {
@@ -367,6 +365,21 @@ class TicketController extends Controller
     {
       http_response_code(404);
       echo "404 Not Found"; exit;
+    }
+
+    /**
+     * Determine whether the current user can manage tickets (admin or manager role).
+     */
+    protected function userCanManageTickets(): bool
+    {
+        if (empty($_SESSION['user'])) {
+            return false;
+        }
+        $role = $_SESSION['user']['role'] ?? null;
+        if ($role === null) {
+            return !empty($_SESSION['user']['is_admin']);
+        }
+        return in_array($role, ['admin','manager'], true);
     }
     
 }

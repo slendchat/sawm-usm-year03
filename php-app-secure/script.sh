@@ -2,10 +2,14 @@
 set -e
 
 echo "Stopping containers and removing volumes..."
-docker-compose down -v
+sudo docker stop php-app-secure-db-1
+sudo docker stop php-app-secure-migrator-1
+sudo docker stop php-app-secure-app-1
 
 echo "Removing unused Docker artifacts..."
-docker system prune -af
+sudo docker rm php-app-secure-db-1
+sudo docker rm php-app-secure-migrator-1
+sudo docker rm php-app-secure-app-1
 
 echo "Building and starting the stack with fresh migrations..."
-docker-compose up --build -d
+sudo docker compose up --build -d

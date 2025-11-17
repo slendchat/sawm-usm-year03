@@ -60,8 +60,18 @@ $router->post('/guestbook',       'GuestController@store');
 $router->get('/guestbook/unsafe', 'GuestController@unsafe');
 
 // admin only
-$router->get('/admin/users/create',  'AdminController@showCreateForm' );
-$router->post('/admin/users/create',  'AdminController@create' );
+$router->get('/admin/users/create',   'AdminController@showCreateForm');
+$router->post('/admin/users/create',  'AdminController@create');
+
+// intentionally unsafe admin panel copy (no auth checks)
+$router->get('/admin/unsafe/create',  'AdminUnsafeController@showCreateForm');
+$router->post('/admin/unsafe/create', 'AdminUnsafeController@create');
+
+// user management (admins + managers)
+$router->get('/users',        'UserManagementController@index');
+$router->get('/users/edit',   'UserManagementController@editForm');
+$router->post('/users/edit',  'UserManagementController@update');
+$router->post('/users/delete','UserManagementController@delete');
 
 
 // Dispatcher - calls the corresponding controller action or sends a 404.

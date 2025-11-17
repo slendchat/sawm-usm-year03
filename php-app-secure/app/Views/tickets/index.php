@@ -1,7 +1,7 @@
 <?php
 /** @var string $title */
 /** @var array  $tickets */
-/** @var bool   $isAdmin */
+/** @var bool   $canManageTickets */
 /** @var array  $filters */
 ?>
 <div class="ticket-searchbar">
@@ -66,7 +66,7 @@
                     [#<?= $t['id'] ?>] <?= htmlspecialchars($t['title']) ?>
                     (<?= htmlspecialchars($t['category']) ?>)</legend>
 
-                <?php if ($isAdmin): ?>
+                <?php if ($canManageTickets): ?>
                   <?php if ($t['status'] === "Open"): ?>
                     <span class="green-255-text">• <?= htmlspecialchars($t['status']) ?></span>
                   <?php elseif ($t['status'] === "Pending"): ?>
@@ -78,7 +78,7 @@
                 <span class="white-168-text">— <?= $t['created_at'] ?></span>
                 </a>
                 <br>
-                <?php if ($isAdmin): ?>
+                <?php if ($canManageTickets): ?>
                   <div class="button-row">
                     <a href="/ticket/edit?id=<?= $t['id'] ?>"><button class="tui-button">Edit</button></a>
                     <a href="/ticket/delete?id=<?= $t['id'] ?>" onclick="return confirm('Delete?')"><button

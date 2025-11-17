@@ -29,6 +29,9 @@
       <li><a href="/guestbook"><span class="red-168-text">G</span>uest Book</a></li>
       <li><a href="/ticket/create"><span class="red-168-text">C</span>reate Ticket</a></li> 
       <li><a href="/tickets"><span class="red-168-text">T</span>icket List</a></li>
+      <?php if (in_array($_SESSION['user']['role'] ?? null, ['admin','manager'], true)): ?>
+         <li><a href="/users"><span class="red-168-text">U</span>ser Directory</a></li>
+      <?php endif; ?>
       <?php if(!empty($_SESSION['user']['is_admin'])): ?>
          <li><a href="/admin/users/create"><span class="red-168-text">C</span>reate New Admin</a></li>
       <?php endif; ?>  

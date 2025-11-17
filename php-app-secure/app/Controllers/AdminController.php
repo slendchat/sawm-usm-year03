@@ -82,8 +82,8 @@ class AdminController extends Controller
         $hash = password_hash($p1, PASSWORD_BCRYPT);
         try {
             $stmt = $db->prepare("
-                INSERT INTO users (email, password_hash, is_admin)
-                VALUES (?, ?, 1)
+                INSERT INTO users (email, password_hash, is_admin, role)
+                VALUES (?, ?, 1, 'admin')
             ");
             $stmt->execute([$email, $hash]);
         } catch (\PDOException $e) {

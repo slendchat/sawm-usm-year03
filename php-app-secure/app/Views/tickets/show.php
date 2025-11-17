@@ -15,7 +15,7 @@
 </table>
 </fieldset>
 
-<?php if($isAdmin): ?>
+<?php if($canManageTickets): ?>
   <div class="ticket-edit-row">
     <div style="display:flex; gap: .5rem;">
   <a href="/ticket/edit?id=<?=$ticket['id']?>"><button class="tui-button">Edit</button></a>
