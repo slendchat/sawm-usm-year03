@@ -44,6 +44,7 @@ class GuestController extends Controller
         $text  = trim($_POST['text_message'] ?? '');
 
         $errors = [];
+        $warnings = [];
 
         if ($user === '' || $email === '' || $text === '') {
             $errors[] = 'Все поля обязательны к заполнению.';
@@ -53,10 +54,6 @@ class GuestController extends Controller
             $errors[] = 'Некорректный адрес электронной почты.';
         }
 
-        if ($this->containsXss($user) || $this->containsXss($text)) {
-            $errors[] = 'Обнаружен потенциально опасный ввод. Уберите теги <script> и подобные конструкции.';
-        }
-
         if ($errors) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old'] = ['user' => $user, 'e_mail' => $email, 'text_message' => $text];
@@ -64,11 +61,31 @@ class GuestController extends Controller
             exit;
         }
 
+        // Экранируем потенциально опасные фрагменты, но не блокируем запись
+        [$userSafe, $hasUserXss] = $this->sanitizeInput($user);
+        [$emailSafe, $hasEmailXss] = $this->sanitizeInput($email);
+        [$textSafe, $hasTextXss] = $this->sanitizeInput($text);
+
+        if ($hasUserXss) {
+            $warnings[] = 'Имя содержит потенциальный XSS — текст экранирован.';
+        }
+        if ($hasEmailXss) {
+            $warnings[] = 'E-mail содержит потенциальный XSS — текст экранирован.';
+        }
+        if ($hasTextXss) {
+            $warnings[] = 'Сообщение содержит потенциальный XSS — текст экранирован.';
+        }
+
         global $db;
         $stmt = $db->prepare('INSERT INTO guest (user, text_message, e_mail) VALUES (?, ?, ?)');
-        $stmt->execute([$user, $text, $email]);
+        $stmt->execute([$userSafe, $textSafe, $emailSafe]);
 
-        $_SESSION['success'] = 'Сообщение добавлено.';
+        $notice = 'Сообщение добавлено.';
+        if ($warnings) {
+            $notice .= ' ' . implode(' ', $warnings);
+        }
+
+        $_SESSION['success'] = $notice;
         header('Location: /guestbook');
         exit;
     }
@@ -107,5 +124,20 @@ class GuestController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * Escape potentially dangerous content and report if XSS patterns were found.
+     *
+     * @return array{string,bool} Tuple: [sanitizedValue, hadXss]
+     */
+    private function sanitizeInput(string $value): array
+    {
+        $hadXss = $this->containsXss($value);
+        if ($hadXss) {
+            $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        }
+
+        return [$value, $hadXss];
     }
 }

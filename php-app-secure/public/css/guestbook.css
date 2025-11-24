@@ -1,0 +1,99 @@
+.guestbook {
+  width: min(1100px, 100%);
+  display: grid;
+  gap: 1rem;
+}
+
+.guestbook-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .guestbook-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.guestbook .tui-window {
+  width: 100%;
+}
+
+.guestbook-lead {
+  margin: 0 0 1rem;
+  color: #d8d8e5;
+  line-height: 1.5;
+}
+
+.guestbook-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.guestbook-field label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  color: #f2f2f2;
+}
+
+.guestbook-field input,
+.guestbook-field textarea {
+  width: 100%;
+}
+
+.guestbook-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.guestbook-actions .tui-button {
+  text-decoration: none;
+}
+
+.guestbook-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.guestbook-entry {
+  border: 1px dashed #5f6a89;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.guestbook-entry__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #e2e2e2;
+}
+
+.guestbook-entry__name {
+  font-weight: 700;
+}
+
+.guestbook-entry__time {
+  font-family: monospace;
+}
+
+.guestbook-entry__message {
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+  color: #f7f7f7;
+}
+
+.guestbook-empty {
+  margin: 0;
+  color: #d3d3e5;
+}

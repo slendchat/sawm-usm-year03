@@ -15,7 +15,10 @@ class AuthController extends Controller
      */
     public function showLoginForm()
     {
-        $this->view('auth/login');
+        $errors = $_SESSION['errors'] ?? [];
+        unset($_SESSION['errors']);
+
+        $this->view('auth/login', compact('errors'));
     }
 
     /**
@@ -71,7 +74,11 @@ class AuthController extends Controller
      */
     public function showRegisterForm()
     {
-        $this->view('auth/register');
+        $errors = $_SESSION['errors'] ?? [];
+        $old    = $_SESSION['old']    ?? [];
+        unset($_SESSION['errors'], $_SESSION['old']);
+
+        $this->view('auth/register', compact('errors','old'));
     }
 
     /**
@@ -103,6 +110,7 @@ class AuthController extends Controller
 
         if ($errors) {
             $_SESSION['errors'] = $errors;
+            $_SESSION['old']    = ['email' => $email];
             header('Location: /register'); exit;
         }
 
@@ -113,10 +121,12 @@ class AuthController extends Controller
             $stmt->execute([$email,$hash]);
         } catch(\PDOException $e) {
             $_SESSION['errors'] = ['User already exists.'];
+            $_SESSION['old']    = ['email' => $email];
             header('Location: /register'); exit;
         }
 
         $_SESSION['success'] = 'Registration successful. Please log in.';
+        unset($_SESSION['old']);
         header('Location: /login'); exit;
         exit;
     }

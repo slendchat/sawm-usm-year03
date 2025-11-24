@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/css/auth.css">
   <link rel="stylesheet" href="/css/home.css">
   <link rel="stylesheet" href="/css/tickets.css">
+  <link rel="stylesheet" href="/css/guestbook.css">
   <!--  -->
   <!-- TUI CSS -->
   <link rel="stylesheet" href="/dist/tuicss.min.css"/>

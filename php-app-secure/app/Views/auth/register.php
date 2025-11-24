@@ -16,7 +16,7 @@
       <fieldset class="tui-fieldset tui-border-solid">
         <legend>Register account</legend>
       <div class="form-row">
-        <label>Email...............:</label> <input class="tui-input" placeholder="johndoe@example.com" type="text" name="email" required>
+        <label>Email...............:</label> <input class="tui-input" placeholder="johndoe@example.com" type="text" name="email" value="<?= htmlspecialchars($old['email'] ?? '') ?>" required>
       </div>
 
       <div class="form-row">
