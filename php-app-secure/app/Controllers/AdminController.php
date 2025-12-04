@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Logger;
 
 /**
  * Controller responsible for administrator user management.
@@ -73,6 +74,7 @@ class AdminController extends Controller
         }
 
         if ($errors) {
+            Logger::info('admin_create_failed', ['reason' => 'validation']);
             $_SESSION['errors'] = $errors;
             $_SESSION['old']    = ['email'=>$email];
             header('Location: /admin/users/create'); exit;
@@ -86,7 +88,12 @@ class AdminController extends Controller
                 VALUES (?, ?, 1, 'admin')
             ");
             $stmt->execute([$email, $hash]);
+            $newAdminId = (int) $db->lastInsertId();
+            Logger::info('admin_created', ['new_admin_id' => $newAdminId]);
         } catch (\PDOException $e) {
+            Logger::info('admin_create_failed_duplicate', [
+                'email_hash' => $this->anonymizeIdentifier($email),
+            ]);
             $_SESSION['errors'] = ['User already exists.'];
             $_SESSION['old']    = ['email'=>$email];
             header('Location: /admin/users/create'); exit;
@@ -94,5 +101,13 @@ class AdminController extends Controller
 
         $_SESSION['success'] = 'Admin account created: ' . htmlspecialchars($email);
         header('Location: /admin/users/create'); exit;
+    }
+
+    /**
+     * Hash identifiers so logs never store personal data.
+     */
+    private function anonymizeIdentifier(string $value): string
+    {
+        return $value === '' ? '' : hash('sha256', $value);
     }
 }

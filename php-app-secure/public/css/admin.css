@@ -1,0 +1,119 @@
+.tui-window.full-width {
+    width: 100% !important;
+}
+
+
+.log-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-top: 1rem;
+}
+
+.log-filter-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+}
+
+.log-filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.log-results-hint {
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.log-card-list {
+  display: block !important;
+  width: 90% !important;
+  margin: 0 auto; /* centered */
+}
+
+.log-card {
+  border: 1px solid #1b44a6;
+  padding: 1rem;
+  background: rgba(17, 22, 54, 0.9);
+  width: 90%;      /* full width inside the parent */
+  margin-bottom: 1rem;
+}
+
+.log-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.log-card-action {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.log-level-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+}
+
+.log-level-info {
+  background: #1b5e20;
+  color: #fff;
+}
+
+.log-level-warn {
+  background: #ff9800;
+  color: #000;
+}
+
+.log-level-error {
+  background: #b71c1c;
+  color: #fff;
+}
+
+.log-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.log-card dl div {
+  background: rgba(10, 12, 32, 0.9);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.log-card dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #9ea7ff;
+}
+
+.log-card dd {
+  margin: 0;
+  font-weight: bold;
+}
+
+.log-card details {
+  margin-top: 0.5rem;
+}
+
+.log-card details summary {
+  cursor: pointer;
+  color: #fdd835;
+}
+
+.log-card pre {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.5rem;
+  border-radius: 4px;
+  max-height: 220px;
+  overflow: auto;
+}

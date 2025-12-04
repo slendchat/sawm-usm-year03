@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Logger;
 
 /**
  * Guestbook controller: shows guestbook, handles submissions, and provides unsafe demo.
@@ -80,6 +81,11 @@ class GuestController extends Controller
         $stmt = $db->prepare('INSERT INTO guest (user, text_message, e_mail) VALUES (?, ?, ?)');
         $stmt->execute([$userSafe, $textSafe, $emailSafe]);
 
+        Logger::info('guest_entry_created', [
+            'email_hash'        => $this->anonymizeIdentifier($email),
+            'has_suspected_xss' => !empty($warnings),
+        ]);
+
         $notice = 'Сообщение добавлено.';
         if ($warnings) {
             $notice .= ' ' . implode(' ', $warnings);
@@ -139,5 +145,10 @@ class GuestController extends Controller
         }
 
         return [$value, $hadXss];
+    }
+
+    private function anonymizeIdentifier(string $value): string
+    {
+        return $value === '' ? '' : hash('sha256', $value);
     }
 }

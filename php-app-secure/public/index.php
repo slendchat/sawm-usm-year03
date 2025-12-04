@@ -29,6 +29,9 @@ spl_autoload_register(function($class) {
 
 // Router and register application routes
 use App\Core\Router;
+use App\Core\ErrorHandler;
+
+ErrorHandler::register();
 
 $router = new Router();
 $router->get('/', 'HomeController@index');
@@ -62,6 +65,8 @@ $router->get('/guestbook/unsafe', 'GuestController@unsafe');
 // admin only
 $router->get('/admin/users/create',   'AdminController@showCreateForm');
 $router->post('/admin/users/create',  'AdminController@create');
+$router->get('/admin/logs',           'LogController@index');
+$router->get('/admin/error-log',      'LogController@errors');
 
 // intentionally unsafe admin panel copy (no auth checks)
 $router->get('/admin/unsafe/create',  'AdminUnsafeController@showCreateForm');

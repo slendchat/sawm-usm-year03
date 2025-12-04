@@ -50,6 +50,7 @@ services:
       - .env
     volumes:
       - ./:/var/www/html
+      - ./storage:/var/www/html/storage
     ports:
       - "8080:80"
     depends_on:

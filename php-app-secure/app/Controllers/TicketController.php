@@ -2,6 +2,8 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Logger;
+use App\Core\HttpException;
 
 /**
  * Controller for managing tickets: listing, viewing, creating, editing, deleting, and status changes.
@@ -221,6 +223,14 @@ class TicketController extends Controller
             $old['is_urgent'],
         ]);
 
+        $ticketId = (int) $db->lastInsertId();
+        Logger::info('ticket_created', [
+            'ticket_id' => $ticketId,
+            'category'  => $old['category'],
+            'priority'  => $old['priority'],
+            'is_urgent' => (int) $old['is_urgent'],
+        ]);
+
         $_SESSION['success'] = 'Ticket created successfully.';
         header('Location: /tickets');
         exit;
@@ -269,6 +279,17 @@ class TicketController extends Controller
         $id = (int)($_POST['id'] ?? 0);
         if (!$id) { header('Location:/tickets'); exit; }
 
+        global $db;
+        $existingStmt = $db->prepare("
+            SELECT title, description, category, priority, due_date, is_urgent, status
+            FROM tickets WHERE id = ?
+        ");
+        $existingStmt->execute([$id]);
+        $current = $existingStmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$current) {
+            header('Location:/tickets'); exit;
+        }
+
         $old = [
           'id'          => $id,
           'title'       => trim($_POST['title'] ?? ''),
@@ -296,7 +317,6 @@ class TicketController extends Controller
           exit;
         }
 
-        global $db;
         $stmt = $db->prepare("
           UPDATE tickets SET
             title       = ?,
@@ -312,6 +332,25 @@ class TicketController extends Controller
           $old['title'], $old['description'], $old['category'],
           $old['priority'], $old['due_date'], $old['is_urgent'],
           $old['status'], $id
+        ]);
+
+        $tracked = ['title','description','category','priority','due_date','is_urgent','status'];
+        $changedFields = [];
+        foreach ($tracked as $field) {
+            $prev = $current[$field] ?? null;
+            $newValue = $old[$field] ?? null;
+            if ($field === 'is_urgent') {
+                $prev = (int) $prev;
+                $newValue = (int) $newValue;
+            }
+            if ((string) $prev !== (string) $newValue) {
+                $changedFields[] = $field;
+            }
+        }
+
+        Logger::info('ticket_updated', [
+            'ticket_id'      => $id,
+            'changed_fields' => $changedFields,
         ]);
 
         $_SESSION['success'] = 'Ticket updated.';
@@ -333,7 +372,11 @@ class TicketController extends Controller
         $id = (int)($_GET['id']??0);
         if ($id) {
           global $db;
-          $db->prepare("DELETE FROM tickets WHERE id=?")->execute([$id]);
+          $stmt = $db->prepare("DELETE FROM tickets WHERE id=?");
+          $stmt->execute([$id]);
+          if ($stmt->rowCount()) {
+            Logger::info('ticket_deleted', ['ticket_id' => $id]);
+          }
         }
         $_SESSION['success']='Ticket deleted.';
         header('Location:/tickets');
@@ -354,8 +397,14 @@ class TicketController extends Controller
         $status = $_POST['status']??'Open';
         if ($id && in_array($status,['Open','Closed','Pending'],true)) {
           global $db;
-          $db->prepare("UPDATE tickets SET status=? WHERE id=?")
-             ->execute([$status,$id]);
+          $stmt = $db->prepare("UPDATE tickets SET status=? WHERE id=?");
+          $stmt->execute([$status,$id]);
+          if ($stmt->rowCount()) {
+            Logger::info('ticket_status_changed', [
+                'ticket_id' => $id,
+                'status'    => $status,
+            ]);
+          }
           $_SESSION['success']="Status changed to $status.";
         }
         header('Location:/ticket?id='.$id);
@@ -363,8 +412,7 @@ class TicketController extends Controller
 
     protected function abort404()
     {
-      http_response_code(404);
-      echo "404 Not Found"; exit;
+        throw new HttpException(404, 'Ticket not found', 'Запрошенный ресурс не найден.');
     }
 
     /**

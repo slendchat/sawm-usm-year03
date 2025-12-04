@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+sudo chmod +wr storage/logs
+
 echo "Stopping containers and removing volumes..."
 sudo docker stop php-app-secure-db-1
 sudo docker stop php-app-secure-migrator-1

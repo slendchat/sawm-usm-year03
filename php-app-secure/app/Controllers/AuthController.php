@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers;
 use App\Core\Controller;
+use App\Core\Logger;
 
 /**
  * Controller responsible for user authentication and registration.
@@ -38,6 +39,7 @@ class AuthController extends Controller
         $email = trim($_POST['email'] ?? '');
         $pass  = $_POST['password'] ?? '';
         if (!$email || !$pass) {
+            Logger::info('login_failed', ['reason' => 'missing_fields']);
             $_SESSION['errors'] = ['Fill every field.'];
             header('Location: /login'); exit;
         }
@@ -49,6 +51,10 @@ class AuthController extends Controller
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$user || !password_verify($pass, $user['password_hash'])) {
+            Logger::info('login_failed', [
+                'reason'      => 'invalid_credentials',
+                'email_hash'  => $this->anonymize($email),
+            ]);
             $_SESSION['errors'] = ['The wrong login or password.'];
             header('Location: /login'); exit;
         }
@@ -63,6 +69,7 @@ class AuthController extends Controller
             'is_manager' => $role === 'manager',
         ];
         $_SESSION['success']  = 'You logged in as '.$user['email'];
+        Logger::info('login_success', ['authenticated_user_id' => (int) $user['id']]);
         header('Location: /'); exit;
     }
 
@@ -111,6 +118,7 @@ class AuthController extends Controller
         if ($errors) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old']    = ['email' => $email];
+            Logger::info('registration_failed', ['reason' => 'validation']);
             header('Location: /register'); exit;
         }
 
@@ -119,7 +127,12 @@ class AuthController extends Controller
         $stmt = $db->prepare("INSERT INTO users (email,password_hash) VALUES (?,?)");
         try {
             $stmt->execute([$email,$hash]);
+            $newUserId = (int) $db->lastInsertId();
+            Logger::info('registration_success', ['new_user_id' => $newUserId]);
         } catch(\PDOException $e) {
+            Logger::info('registration_failed_duplicate', [
+                'email_hash' => $this->anonymize($email),
+            ]);
             $_SESSION['errors'] = ['User already exists.'];
             $_SESSION['old']    = ['email' => $email];
             header('Location: /register'); exit;
@@ -140,8 +153,17 @@ class AuthController extends Controller
      */
     public function logout()
     {
+        Logger::info('logout', []);
         session_unset();
         session_destroy();
         header('Location: /'); exit;
+    }
+
+    /**
+     * Return SHA-256 hash to anonymize identifiers in logs.
+     */
+    private function anonymize(string $value): string
+    {
+        return $value === '' ? '' : hash('sha256', $value);
     }
 }

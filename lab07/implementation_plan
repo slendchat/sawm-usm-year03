@@ -1,0 +1,33 @@
+Implementation Plan — Lab 07 Error Handling
+=========================================
+
+1. Centralized Error Logging Infrastructure
+-------------------------------------------
+- Create a new file `storage/logs/error.log` (same storage dir already mounted via docker-compose) to store PHP warnings/exceptions with timestamps. Reuse existing directory creation logic in `config/config.php` and add constants like `APP_ERROR_LOG_PATH`.
+- Build `App\Core\ErrorLogger` (or extend existing Logger) with helpers for `recordError($level, $message, $file, $line, $context)` and `recordException(Throwable $e)` so all error types land in one file using JSON lines and without exposing personally identifiable information.
+
+2. Register Global Handlers
+---------------------------
+- In `config/config.php` (after the autoloader/bootstrap) register `set_error_handler`, `set_exception_handler`, and `register_shutdown_function` that forward captured info to `ErrorLogger` and then display a friendly message.
+- Map non-fatal errors to user-friendly flashes (via `$_SESSION['errors'][] = '...';`) and for fatal errors redirect to the “safe haven” page described below.
+- Update `App\Core\Router::dispatch()` and controller helper `abort404()` to throw/trigger custom exceptions so 404/500 events also go through the logger.
+
+3. User-Facing Messaging
+------------------------
+- Ensure header view (`app/Views/layout/header.php`) can render a default “Oops, something broke” message when the global handler sets e.g. `$_SESSION['global_error']`.
+- For known cases (missing ticket, validation errors) keep existing inline messaging, but for unexpected issues rely on the centralized mechanism so the user sees actionable text (“Please try again or go back to the main page”) without stack traces.
+
+4. Static Shelter Page
+----------------------
+- Add a static HTML file (e.g., `public/errors/safe.html`) with a simple design, short apology, and at least one link back into the app (home or login). Explain in the README that it’s static to avoid recursive failures and to give the user a stable fallback even if PHP is down.
+- Update the error handlers so fatal errors (`register_shutdown_function`) `header('Location: /errors/safe.html')` (when headers not sent) or include the file so the user always lands there.
+
+5. Admin Error Log Viewer
+-------------------------
+- Create a controller action (maybe `LogController@errors` or a dedicated `ErrorLogController@index`) that checks `is_admin`, reads the tail of `error.log`, and renders it in a paginated/filtered view similar to the activity log (reuse CSS components where possible).
+- Wire the route in `public/index.php` (GET `/admin/error-log`) and add a nav entry in `app/Views/layout/header.php` visible only to admins.
+
+6. Documentation / Justification
+--------------------------------
+- Update lab07 README to explain: (a) why leaking raw error text is dangerous (info disclosure for attackers), (b) why error logs must exist for auditing/security, (c) why the safe page must be static and include navigation back to the app.
+- Include testing steps (trigger 404, force PHP warning, etc.) to show both user messaging and admin log inspection.

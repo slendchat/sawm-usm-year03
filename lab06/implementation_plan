@@ -1,0 +1,42 @@
+Implementation Plan — Lab 06 Logging
+===================================
+
+1. Logging Destination & Docker Integration
+-------------------------------------------
+- Create a writable directory inside the app repo (e.g., `php-app-secure/storage/logs`) that will house application log files and add it to `.gitignore` if not already ignored.
+- Update `docker-compose.yml` to mount a host directory (e.g., `./php-app-secure/storage:/var/www/html/storage`) so logs persist between container restarts; ensure permissions allow the `www-data` user to append.
+- Define a config constant or helper in `config/config.php` (or a new bootstrap file) that resolves the absolute log file path (e.g., `LOG_PATH = __DIR__.'/../storage/logs/app.log'`) to keep controllers decoupled from filesystem details.
+
+2. Logging Utility
+------------------
+- Introduce a lightweight logger class or helper (e.g., `App\Core\Logger`) responsible for formatting entries (`timestamp | user_id/email | action | details | IP`) and writing them with `file_put_contents(..., FILE_APPEND | LOCK_EX)` to guard against concurrent writes.
+- Support anonymized identifiers where feasible (store account IDs/roles instead of sensitive payloads) and include sanitization to prevent log forging (strip control chars, replace newlines).
+- Expose simple helper methods such as `Logger::info($event, array $context = [])` so controllers can log without duplicating formatting, and centralize log file rotation policy if needed (e.g., roll when >5MB).
+
+3. Instrumentation Points
+-------------------------
+- **Authentication:** In `AuthController`, log successful logins/logouts and registration attempts, capturing actor email/IP and outcome (success/failure reason). Avoid logging plaintext passwords.
+- **Admin Panel:** In `AdminController` and `AdminUnsafeController`, log admin creation attempts (still needed for the unsafe route demo) so unauthorized use is visible.
+- **Ticket Actions:** In `TicketController`, log create/edit/delete/status-change events: ticket ID, actor role, and summary of fields changed (without dumping entire description to keep logs concise).
+- **User Directory:** Instrument `UserManagementController` update/delete actions to record which staff member edited or removed which account.
+- **Guestbook:** Optionally log submissions to highlight potential spam/XSS attempts and relate to lab requirements about tracking user activity.
+- Ensure every logging call checks whether a user is authenticated; for guests, log with `user_id=null` and request IP.
+
+4. Admin Log Viewer Endpoint
+-----------------------------
+- Add a new controller (e.g., `LogController`) or extend `AdminController` with actions: `showLog()` and optionally `downloadLog()`. Use the existing `ensureAdmin()` guard to restrict access strictly to admins.
+- Register routes in `public/index.php` (GET `/admin/logs` for viewing, maybe GET `/admin/logs/download` for exporting) and link to the new page from the header for admins.
+- Build a view under `app/Views/admin/logs.php` that streams the log file safely: read the file (with size limits/pagination), escape lines with `htmlspecialchars`, and provide basic filtering/search boxes if feasible.
+- Handle absent/empty logs gracefully (show message) and protect against huge files by limiting to the last N KB lines or requiring explicit download.
+
+5. Security & Privacy Considerations
+------------------------------------
+- Ensure log files are not web-accessible by keeping them outside `public/` and setting proper permissions; double-check Apache config doesn’t serve `storage/`.
+- Do not log sensitive data (passwords, session IDs). For privacy, prefer logging user IDs and hashed/anonymized identifiers when referencing emails.
+- Consider adding a CLI/cron utility to rotate or purge old logs as part of maintenance documentation to satisfy the lab’s requirement about explaining rotation.
+
+6. Validation & Testing
+-----------------------
+- After implementation, exercise key flows (login/logout, ticket CRUD, admin creation, user edits/deletion) and confirm entries appear in `storage/logs/app.log` with correct format.
+- Verify the admin log viewer enforces authorization and escapes content to avoid log-based XSS.
+- Document in the lab report how to enable/inspect logs, why logging is necessary, and how rotation/anonymization is handled.

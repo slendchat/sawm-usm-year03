@@ -35,6 +35,8 @@
       <?php endif; ?>
       <?php if(!empty($_SESSION['user']['is_admin'])): ?>
          <li><a href="/admin/users/create"><span class="red-168-text">C</span>reate New Admin</a></li>
+         <li><a href="/admin/logs"><span class="red-168-text">A</span>ctivity Logs</a></li>
+         <li><a href="/admin/error-log"><span class="red-168-text">E</span>rror Log</a></li>
       <?php endif; ?>  
       <li><a href="/logout"><span class="red-168-text">L</span>og Out</a></li>
       <span class="tui-datetime" data-format="H:m:s"></span>
@@ -61,6 +63,17 @@
     </fieldset>
     </div>
   <?php unset($_SESSION['success']); ?>
+<?php endif; ?>
+
+<?php if (!empty($_SESSION['global_error'])): ?>
+  <div class="tui-window red-168" style="margin-bottom: 2rem;">
+    <fieldset class="tui-fieldset">
+      <legend class="yellow-255-text">Notice</legend>
+      <p><?= htmlspecialchars($_SESSION['global_error']) ?></p>
+      <p><a href="/" class="tui-button blue-168 white-255-text">Go to main page</a></p>
+    </fieldset>
+  </div>
+<?php unset($_SESSION['global_error']); ?>
 <?php endif; ?>
 
 <?php if (!empty($errors)): ?>

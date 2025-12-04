@@ -1,0 +1,80 @@
+PHP App Secure — Detailed Overview
+==================================
+
+1. Purpose & Feature Set
+------------------------
+- The project is a ticket management web app written in plain PHP, wrapped in Docker, and backed by MySQL; the README doubles as a lab report and lists the launch steps, demo credentials, major roles (guest/user/manager/admin), and supported flows such as CRUD on tickets, admin creation, and search/filter features (php-app-secure/README.md:11-155).
+- Documented goals emphasize modular architecture, authenticated access, role separation, validation on both the client and server, and basic security hardening (php-app-secure/README.md:45-79).
+
+2. Runtime, Deployment, and Configuration
+-----------------------------------------
+- Environment variables are injected from a `.env` generated via `.env_example`, which defines the DB host/name/user/password used by every service (php-app-secure/.env_example:1-4).
+- `docker-compose.yml` brings up three services: `db` (MySQL 8 seeded from the `migrations/` folder), `migrator` (waits for DB health and replays every SQL file), and `app` (builds from the local Dockerfile, mounts the code, and exposes Apache on port 8080) (php-app-secure/docker-compose.yml:3-59).
+- The Dockerfile extends `php:8.0-apache`, installs PDO extensions, enables `mod_rewrite`, points Apache’s document root at `public/`, copies the repo, and fixes ownership to `www-data` (php-app-secure/Dockerfile:1-18).
+- `script.sh` is a convenience reset script that force-stops/removes the Compose containers and rebuilds the stack from scratch with migrations reapplied (php-app-secure/script.sh:1-15); `notes.txt` records handy MySQL commands for inspecting schemas inside the DB container (php-app-secure/notes.txt:1-6).
+- At runtime `config/config.php` starts the session and creates a global PDO connection from the env vars; controllers pull this `$db` via the global scope rather than a DI container (php-app-secure/config/config.php:6-36).
+
+3. Bootstrap and Architectural Skeleton
+---------------------------------------
+- `public/index.php` is the front controller: it requires the config, registers a PSR-4–style autoloader for the `App\` namespace, instantiates `App\Core\Router`, and registers every GET/POST route before dispatching the current request (php-app-secure/public/index.php:4-78).
+- The router is intentionally minimal: it stores method→path→`Controller@action` mappings and, at dispatch, parses the URI, finds the controller class under `App\Controllers`, and invokes the action (php-app-secure/app/Core/Router.php:8-68).
+- The base Controller only exposes `view($path, $data)` which extracts the payload and includes a shared header, the requested view, and a footer (php-app-secure/app/Core/Controller.php:6-22).
+- `app/Views/layout/header.php` loads all CSS bundles, TuiCSS assets, the `guest-xss-guard` script, navigation links gated by session role flags, and global flash blocks for success/errors (php-app-secure/app/Views/layout/header.php:8-76). `layout/footer.php` renders a branded status bar footer (php-app-secure/app/Views/layout/footer.php:2-11).
+- Static assets live under `public/`: `css/` hosts global/auth/admin/home/tickets/guestbook styles, `js/` exposes the SQL and XSS guards, and `dist/` packages the vendored TuiCSS distribution (fonts/images/JS/CSS).
+
+4. Domain Controllers and Server-Side Flows
+-------------------------------------------
+### 4.1 Home
+- `HomeController@index` simply renders the welcome page with a title/welcome string and demonstrates the lightweight nature of controllers in this stack (php-app-secure/app/Controllers/HomeController.php:6-25).
+
+### 4.2 Authentication & Session Management
+- `AuthController` renders auth views, validates inputs, and uses PDO prepared statements to pull users by email. Passwords are hashed with `password_hash(..., PASSWORD_BCRYPT)` at registration and verified with `password_verify` at login (php-app-secure/app/Controllers/AuthController.php:16-131).
+- Successful logins stash `id`, `email`, and derived `role`/`is_admin`/`is_manager` flags inside `$_SESSION['user']`, which downstream controllers read for enforcement; `logout()` simply clears/destroys the session (php-app-secure/app/Controllers/AuthController.php:57-146).
+
+### 4.3 Ticket Management
+- `TicketController@index` builds dynamic SQL fragments based on filters (`q`, `category`, `priority`) and the caller’s role to enforce that guests view only “Open” tickets, normal users see “Open/Closed”, and staff see everything (php-app-secure/app/Controllers/TicketController.php:27-87). The query is parameterized, preventing SQL injection, and the resulting data plus filter state is fed to `tickets/index`.
+- `show`, `createForm`, `create`, `editForm`, `edit`, `delete`, and `changeStatus` implement the rest of the CRUD flow, with both server-side validation and session-based flash errors (php-app-secure/app/Controllers/TicketController.php:97-362). Only logged-in users can create tickets, and only admins/managers (per `userCanManageTickets()`) can edit/delete/change statuses (php-app-secure/app/Controllers/TicketController.php:236-362,373-383).
+- Notable caveats: ticket deletion is triggered via a GET link (`/ticket/delete?id=...`), and there is no CSRF token on any mutating form, so requests are vulnerable to CSRF even though the README claims such protection exists.
+
+### 4.4 Admin Creation & User Directory
+- `AdminController` protects both view and create handlers with `ensureAdmin()`, validates incoming data, hashes passwords, and inserts new records with `role='admin'` (php-app-secure/app/Controllers/AdminController.php:18-97).
+- `UserManagementController` lets admins and managers list, edit, and delete users but prevents managers from modifying admin accounts and blocks self-deletion (php-app-secure/app/Controllers/UserManagementController.php:14-169). Input validation and PDO exception handling keep email edits safe.
+
+### 4.5 Guestbook / XSS Lab
+- `GuestController@index` loads all guest entries, feeds them to the safe view with `htmlspecialchars` everywhere, and uses `$_SESSION` to surface validation errors; `store()` validates input, runs a hand-rolled sanitizer that escapes when suspect patterns are detected, and inserts into the `guest` table (php-app-secure/app/Controllers/GuestController.php:15-91).
+- `GuestController@unsafe` intentionally renders the same dataset without escaping to demonstrate stored XSS (php-app-secure/app/Controllers/GuestController.php:93-105).
+
+### 4.6 Deliberate Vulnerability Copy
+- `AdminUnsafeController` is a clone of the admin user creation flow but lacks any authentication/authorization check; anyone who finds `/admin/unsafe/create` can create an administrator account (php-app-secure/app/Controllers/AdminUnsafeController.php:17-74). This ties back to earlier labs studying IDOR-like flaws.
+
+5. Views & Client-Side Behavior
+-------------------------------
+- Auth forms under `app/Views/auth/` are styled with TuiCSS and include placeholder scripts for SQLi detection, but the forms never add the `data-sql-guard="true"` attribute required by `public/js/auth-sql-guard.js`, so the guard never activates (php-app-secure/app/Views/auth/login.php:20-38, php-app-secure/app/Views/auth/register.php:13-39, php-app-secure/public/js/auth-sql-guard.js:7-43).
+- Ticket views (index/create/edit/show) show the filter UI, CRUD buttons, and client-side validation scripts that mirror the server checks, including preventing past due dates (php-app-secure/app/Views/tickets/index.php:7-95, php-app-secure/app/Views/tickets/create.php:3-155, php-app-secure/app/Views/tickets/edit.php:3-174, php-app-secure/app/Views/tickets/show.php:1-45).
+- The guestbook view renders a “safe” form but explicitly sets `data-xss-guard="false"`, so the `guest-xss-guard` script (which looks for `data-xss-guard="true"`) is disabled; users are pointed to `/guestbook/unsafe` for the non-escaped demo (php-app-secure/app/Views/guest/index.php:11-76, php-app-secure/public/js/guest-xss-guard.js:20-41, php-app-secure/app/Views/guest/unsafe.php:3-36).
+- The admin creation, user directory, and edit forms leverage the same layout-driven flash messaging and TuiCSS components (php-app-secure/app/Views/admin/create_user.php:25-52, php-app-secure/app/Views/admin/create_user_insecure.php:1-43, php-app-secure/app/Views/users/index.php:5-62, php-app-secure/app/Views/users/edit.php:5-35).
+- Layout navigation dynamically exposes `/tickets`, `/ticket/create`, `/users`, and `/admin/users/create` depending on session role flags, and always shows login/register for anonymous visitors (php-app-secure/app/Views/layout/header.php:26-52).
+
+6. Assets & Supporting JavaScript
+---------------------------------
+- `public/js/auth-sql-guard.js` scans text/password inputs for common SQL injection signatures and blocks the submission with an `alert` if suspicious patterns are found, provided forms opt in via `data-sql-guard="true"` (php-app-secure/public/js/auth-sql-guard.js:1-43). There is a duplicate copy in `app/js/`, but only the `public/` version is web-accessible.
+- `public/js/guest-xss-guard.js` hooks `DOMContentLoaded`, inspects forms flagged with `data-xss-guard="true"`, and alerts users when dangerous substrings such as `<script` or `javascript:` are entered (php-app-secure/public/js/guest-xss-guard.js:1-42).
+- Stylesheets in `public/css/` scope the TuiCSS palettes to the layout, forms, guestbook grid, and ticket listings, while `public/dist/` carries the vendor fonts/images/JS referenced by the layout header.
+
+7. Database Schema & Seed Data
+------------------------------
+- SQL migrations are replayed automatically: `001` creates `users` with `email`, `password_hash`, `is_admin`, and timestamps; `002` creates `tickets` with owner, category, priority, due date, urgency flag, and status (php-app-secure/migrations/001_create_users.sql:1-7, php-app-secure/migrations/002_create_tickets.sql:1-13).
+- Seed migrations add a default admin (`003`), sample tickets covering multiple categories/priorities (`004`), six non-admin test users (`005`), the guestbook table (`006`), a `role` ENUM column and backfill for admins (`007`), and a manager login (`008`) (php-app-secure/migrations/003_insert_admin.sql:1-6, php-app-secure/migrations/004_instert_test-tickets.sql:1-7, php-app-secure/migrations/005_insert_sample_users.sql:1-8, php-app-secure/migrations/006_create_guest.sql:1-7, php-app-secure/migrations/007_add_role_to_users.sql:1-6, php-app-secure/migrations/008_insert_manager.sql:1-7).
+
+8. Supporting Documentation & Media
+-----------------------------------
+- The README doubles as end-user documentation, capturing screenshots, DB diagrams, and FAQ-style explanations for authentication, hashing, and search/filter behavior (php-app-secure/README.md:67-320).
+- Image assets referenced in the README (under `img/`) illustrate UI states but are not part of the runtime `public/` folder.
+
+9. Security Posture – Highlights & Gaps
+---------------------------------------
+- Positive controls: passwords are always hashed (php-app-secure/app/Controllers/AuthController.php:117-126), database access uses prepared statements, output escaping is consistent in “safe” views, and role/ownership checks are centralised in helpers such as `userCanManageTickets()` (php-app-secure/app/Controllers/TicketController.php:373-383) and `ensureStaff()` (php-app-secure/app/Controllers/UserManagementController.php:14-21).
+- Demonstrated weaknesses include the intentional admin backdoor (`/admin/unsafe/create`) and the `GuestController@unsafe` endpoint, both of which exist to showcase common vulnerabilities (php-app-secure/app/Controllers/AdminUnsafeController.php:17-73, php-app-secure/app/Controllers/GuestController.php:93-105).
+- Less intentional gaps to be aware of while extending the app: no CSRF tokens exist in any forms despite the README stating otherwise (compare php-app-secure/README.md:218-224 with php-app-secure/app/Views/tickets/create.php:3-87); destructive actions such as `/ticket/delete` run over GET without confirmation logic on the server (php-app-secure/app/Controllers/TicketController.php:330-340); the JavaScript guard libraries are included but not opt-in via the required data attributes, so they currently do nothing (php-app-secure/app/Views/auth/login.php:20-38, php-app-secure/app/Views/guest/index.php:11-76).
+
+This overview should give you a map of every moving piece in `php-app-secure/` so you can add logging for Lab 6 or extend functionality without hunting through the codebase.

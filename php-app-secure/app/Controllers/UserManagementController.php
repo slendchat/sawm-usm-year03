@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Logger;
 
 /**
  * Controller that exposes user listing/editing/deleting for admins and managers.
@@ -131,6 +132,7 @@ class UserManagementController extends Controller
         }
 
         $_SESSION['success'] = 'User updated.';
+        Logger::info('user_directory_update', ['target_user_id' => $id]);
         header('Location: /users');
         exit;
     }
@@ -162,7 +164,11 @@ class UserManagementController extends Controller
             exit;
         }
 
-        $db->prepare("DELETE FROM users WHERE id = ?")->execute([$id]);
+        $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        if ($stmt->rowCount()) {
+            Logger::info('user_directory_delete', ['target_user_id' => $id]);
+        }
         $_SESSION['success'] = "User #{$id} deleted.";
         header('Location: /users');
         exit;

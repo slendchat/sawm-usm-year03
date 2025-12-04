@@ -2,6 +2,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Logger;
 
 /**
  * Unsafe admin controller left intentionally without auth/session checks to
@@ -47,6 +48,7 @@ class AdminUnsafeController extends Controller
         }
 
         if ($errors) {
+            Logger::info('admin_create_failed_unsafe', ['reason' => 'validation']);
             $_SESSION['errors'] = $errors;
             $_SESSION['old']    = ['email' => $email];
             header('Location: /admin/unsafe/create');
@@ -61,7 +63,12 @@ class AdminUnsafeController extends Controller
                 VALUES (?, ?, 1, 'admin')
             ");
             $stmt->execute([$email, $hash]);
+            $newAdminId = (int) $db->lastInsertId();
+            Logger::info('admin_created_unsafe', ['new_admin_id' => $newAdminId]);
         } catch (\PDOException $e) {
+            Logger::info('admin_create_failed_unsafe_duplicate', [
+                'email_hash' => $this->anonymizeIdentifier($email),
+            ]);
             $_SESSION['errors'] = ['User already exists.'];
             $_SESSION['old']    = ['email' => $email];
             header('Location: /admin/unsafe/create');
@@ -71,5 +78,10 @@ class AdminUnsafeController extends Controller
         $_SESSION['success'] = 'Admin account created (unsafe mode): ' . htmlspecialchars($email);
         header('Location: /admin/unsafe/create');
         exit;
+    }
+
+    private function anonymizeIdentifier(string $value): string
+    {
+        return $value === '' ? '' : hash('sha256', $value);
     }
 }

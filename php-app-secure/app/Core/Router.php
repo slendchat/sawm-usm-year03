@@ -58,9 +58,7 @@ class Router {
     public function dispatch($uri, $method) {
         $path = parse_url($uri, PHP_URL_PATH);
         if (!isset($this->routes[$method][$path])) {
-            http_response_code(404);
-            echo "404 — page not found";
-            exit;
+            throw new HttpException(404, 'Route not found', 'Страница не найдена.');
         }
         list($controller, $action) = explode('@', $this->routes[$method][$path]);
         $controller = "App\\Controllers\\{$controller}";
