@@ -107,29 +107,59 @@ class AuthController extends Controller
         $pass2 = $_POST['password2'] ?? '';
 
         $errors = [];
+
+        // Required fields
         if (!$email || !$pass1 || !$pass2) {
-            $errors[] = 'All fields requiered.';
-        } elseif ($pass1 !== $pass2) {
+            $errors[] = 'All fields are required.';
+        }
+
+        // Password match
+        if ($pass1 !== $pass2) {
             $errors[] = 'Passwords do not match.';
-        } elseif (strlen($pass1)<6) {
-            $errors[] = 'Password length at least 6 characters.';
+        }
+
+        // Password length
+        if (strlen($pass1) < 8) {
+            $errors[] = 'Password must be at least 8 characters long.';
+        }
+
+        // Password must contain uppercase
+        if (!preg_match('/[A-Z]/', $pass1)) {
+            $errors[] = 'Password must contain at least one uppercase letter.';
+        }
+
+        // Password must contain lowercase
+        if (!preg_match('/[a-z]/', $pass1)) {
+            $errors[] = 'Password must contain at least one lowercase letter.';
+        }
+
+        // Password must contain digit
+        if (!preg_match('/\d/', $pass1)) {
+            $errors[] = 'Password must contain at least one number.';
+        }
+
+        // Password must contain special character
+        if (!preg_match('/[!@#$%^&*()\-_=+\[\]{};:,.<>\/?]/', $pass1)) {
+            $errors[] = 'Password must contain at least one special character.';
         }
 
         if ($errors) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old']    = ['email' => $email];
             Logger::info('registration_failed', ['reason' => 'validation']);
-            header('Location: /register'); exit;
+            header('Location: /register'); 
+            exit;
         }
 
         global $db;
         $hash = password_hash($pass1, PASSWORD_BCRYPT);
         $stmt = $db->prepare("INSERT INTO users (email,password_hash) VALUES (?,?)");
+
         try {
-            $stmt->execute([$email,$hash]);
-            $newUserId = (int) $db->lastInsertId();
+            $stmt->execute([$email, $hash]);
+            $newUserId = (int)$db->lastInsertId();
             Logger::info('registration_success', ['new_user_id' => $newUserId]);
-        } catch(\PDOException $e) {
+        } catch (\PDOException $e) {
             Logger::info('registration_failed_duplicate', [
                 'email_hash' => $this->anonymize($email),
             ]);
@@ -141,8 +171,8 @@ class AuthController extends Controller
         $_SESSION['success'] = 'Registration successful. Please log in.';
         unset($_SESSION['old']);
         header('Location: /login'); exit;
-        exit;
     }
+
 
     /**
      * Log out the current user.
